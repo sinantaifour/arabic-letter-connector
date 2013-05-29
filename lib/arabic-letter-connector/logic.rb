@@ -37,7 +37,7 @@ module ArabicLetterConnector
     elsif charinfos[previous_char] # The next character is not an arabic character.
       charinfos[previous_char].connects? ? :final : :isolated 
     elsif charinfos[next_char] # The previous character is not an arabic character.
-      charinfos[next_char].connects? ? :initial : :isolated
+      :initial # If the current character does not connect, its initial form will map to its isolated form.
     else # Neither of the surrounding characters are arabic characters.
       :isolated
     end

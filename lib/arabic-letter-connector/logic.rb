@@ -4,10 +4,10 @@ module ArabicLetterConnector
 
   class CharacterInfo
 
-  	attr_accessor :common , :formatted
+    attr_accessor :common , :formatted
 
-	  def initialize(common, isolated, final, initial, medial, connects)
-		  @common = common
+    def initialize(common, isolated, final, initial, medial, connects)
+      @common = common
       @formatted = {
         :isolated => isolated,
         :final    => final,
@@ -15,7 +15,7 @@ module ArabicLetterConnector
         :medial   => medial,
       }
       @connects = connects
-	  end
+    end
 
     def connects?
       @connects

@@ -54,7 +54,7 @@ This gem is particular useful if you are using `prawn` to generate PDF files.
     require 'arabic-letter-connector'
     Prawn::Document.generate("arabic.pdf") do
       text_direction :rtl
-      font("/path/to/arabic/font.ttf") do
+      font("/path/to/arabic/font.ttf") do # For example: http://www.amirifont.org/
         text "مرحبا يا العالم".connect_arabic_letters
       end
     end

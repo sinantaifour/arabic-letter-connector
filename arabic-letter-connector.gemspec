@@ -1,6 +1,6 @@
 $:.unshift(File.join(File.dirname(__FILE__), 'lib'))
 
-require 'arabic_letter_connector/version'
+require 'arabic-letter-connector/version'
 
 Gem::Specification.new do |s|
 

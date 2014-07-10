@@ -63,6 +63,7 @@ module ArabicLetterConnector
     end
     str.each_char { |char| consume_character.call(char) }
     consume_character.call(nil)
+    res.gsub!(/\d+/) {|m| m.reverse}
     return res
   end
 

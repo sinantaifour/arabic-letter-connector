@@ -1,5 +1,6 @@
 class String
   def connect_arabic_letters
-    ArabicLetterConnector.transform(self)
+  	# Number in arabic letters appears reversed
+    ArabicLetterConnector.transform(self).gsub(/\d+/) {|m| m.reverse}
   end
 end

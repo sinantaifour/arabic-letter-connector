@@ -4,6 +4,8 @@ module ArabicLetterConnector
 
   class CharacterInfo
 
+    HAMZA = "\u0621"
+
     attr_accessor :common , :formatted
 
     def initialize(common, isolated, final, initial, medial, connects)
@@ -17,20 +19,29 @@ module ArabicLetterConnector
       @connects = connects
     end
 
+    # @return [Boolean] can the character connect with the next character
     def connects?
       @connects
     end
 
+    # @return [Boolean] can the character connect with the previous character
+    def connects_previous?
+      if @common == HAMZA
+        false
+      else
+        true
+      end
+    end
   end
 
   # Determine the form of the current character (:isolated, :initial, :medial,
   # or :final), given the previous character and the next one. In Arabic, all
-  # characters can connect with a previous character, but not all letters can
-  # connect with the next character (this is determined by
-  # CharacterInfo#connects?).
+  # characters except for Hamza can connect with a previous character, but not
+  # all letters can connect with the next character (this is determined by
+  # CharacterInfo#connects? and CharacterInfo#connects_previous?).
   def self.determine_form(previous_char, next_char)
     charinfos = self.charinfos
-    if charinfos[previous_char] && charinfos[next_char]
+    if charinfos[previous_char] && charinfos[next_char] && charinfos[next_char].connects_previous?
       charinfos[previous_char].connects? ? :medial : :initial # If the current character does not connect,
                                                               # its medial form will map to its final form,
                                                               # and its initial form will map to its isolated form.
@@ -169,6 +180,24 @@ module ArabicLetterConnector
     add("0629", "fe93", "fe94", "fe93", "fe94", false) # Ta2 Marbu6a
     add("0640", "0640", "0640", "0640", "0640", true)  # Tatweel
     add("0649", "feef", "fef0", "feef", "fef0", false) # Alef Layyina
+
+    # Prevent words from breaking on diacritics by marking the diacritics as
+    # connected
+    #
+    # List of Diacritics pulled from http://unicode.org/charts/PDF/U0600.pdf
+    # under the heading "Tashkil from ISO 8859-6"
+    [
+      "064b", # FATHATAN
+      "064c", # DAMMATAN
+      "064D", # KASRATAN
+      "064E", # FATHA
+      "064F", # DAMMA
+      "0650", # KASRA
+      "0651", # SHADDA
+      "0652"  # SUKUN
+    ].each do |codepoint|
+      add(codepoint, codepoint, codepoint, codepoint, codepoint, true)
+    end
 
     # The common codes for these four Lam-Alef characters are in the
     # Arabic Presentation Forms-B block (rather than the regular Arabic block),

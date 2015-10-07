@@ -173,10 +173,10 @@ module ArabicLetterConnector
     # The common codes for these four Lam-Alef characters are in the
     # Arabic Presentation Forms-B block (rather than the regular Arabic block),
     # because they are introduced by the replace_lam_alef function
-    add("fef5", "fef5", "fef6", "fef5", "fef6", true)  # Lam Alef Madda Above
-    add("fef7", "fef7", "fef8", "fef7", "fef8", true)  # Lam Alef Hamaza Above
-    add("fef9", "fef9", "fefa", "fef9", "fefa", true)  # Lam Alef Hamaza Below
-    add("fefb", "fefb", "fefc", "fefb", "fefc", true)  # Lam Alef
+    add("fef5", "fef5", "fef6", "fef5", "fef6", false)  # Lam Alef Madda Above
+    add("fef7", "fef7", "fef8", "fef7", "fef8", false)  # Lam Alef Hamaza Above
+    add("fef9", "fef9", "fefa", "fef9", "fefa", false)  # Lam Alef Hamaza Below
+    add("fefb", "fefb", "fefc", "fefb", "fefc", false)  # Lam Alef
     @@charinfos
   end
 

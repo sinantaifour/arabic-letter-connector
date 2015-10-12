@@ -17,10 +17,10 @@ module ArabicLetterConnector
       @connects = connects
     end
 
+    # @return [Boolean] can the character connect with the next character
     def connects?
       @connects
     end
-
   end
 
   # Determine the form of the current character (:isolated, :initial, :medial,
@@ -31,11 +31,11 @@ module ArabicLetterConnector
   def self.determine_form(previous_char, next_char)
     charinfos = self.charinfos
     if charinfos[previous_char] && charinfos[next_char]
-      charinfos[previous_char].connects? ? :medial : :initial # If the current character does not connect, 
+      charinfos[previous_char].connects? ? :medial : :initial # If the current character does not connect,
                                                               # its medial form will map to its final form,
                                                               # and its initial form will map to its isolated form.
     elsif charinfos[previous_char] # The next character is not an arabic character.
-      charinfos[previous_char].connects? ? :final : :isolated 
+      charinfos[previous_char].connects? ? :final : :isolated
     elsif charinfos[next_char] # The previous character is not an arabic character.
       :initial # If the current character does not connect, its initial form will map to its isolated form.
     else # Neither of the surrounding characters are arabic characters.
@@ -49,6 +49,7 @@ module ArabicLetterConnector
     previous_char = nil
     current_char = nil
     next_char = nil
+    str = self.replace_lam_alef(str)
     consume_character = lambda do |char|
       previous_char = current_char
       current_char = next_char
@@ -68,6 +69,65 @@ module ArabicLetterConnector
   end
 
   private
+
+  # The unicode key for Lam
+  LAM = "\u0644"
+
+  # Map the unicode characters for the different kinds of Alefs (with different
+  # diacritical marks) to the Lam-Alef character with the same diacritical
+  # marks
+  ALEF_TYPES = {
+    "\u0622" => "\ufef5",                   # Alef w/ Madda Above
+    "\u0623" => "\ufef7",                   # Alef w/ Hamaza Above
+    "\u0625" => "\ufef9",                   # Alef w/ Hamaza Below
+    "\u0627" => "\ufefb"                    # Alef
+  }
+
+  # According to https://en.wikipedia.org/wiki/Arabic_alphabet#Ligatures,
+  # Arabic requires a lam-alef ligature to be rendered whenever these
+  # two characters run consecutively. This ligature is difficult to implement
+  # within the transform loop directly, as it potentially replaces two
+  # characters with a single character AND requires evaluation of whether
+  # the combined character is in the isolated/final/initial/medial position.
+  # Instead, this function replaces the Lam Alefs with their common form
+  # and allows the remaining logic in transform to map that common form
+  # to the appropriate isolated/final/intial/medial form.
+  #
+  # @param str [String] a unicode string
+  # @return [String] a copy of str with all sequential Lam-Alef characters
+  # replaced with the isolated form of the Lam-Alef
+  def self.replace_lam_alef(str)
+    res = ""
+    previous_char = nil
+    current_char = nil
+    next_char = nil
+    consume_character = lambda do |char|
+      previous_char = current_char
+      current_char = next_char
+      next_char = char
+
+      if previous_char == LAM && !ALEF_TYPES.key?(current_char)
+        res += LAM
+      elsif previous_char == LAM && ALEF_TYPES.key?(current_char)
+        res += ALEF_TYPES[current_char]
+        next
+      end
+
+      if current_char.nil?               # no more characters available
+        return
+      elsif current_char == LAM          # LAM to save for later processing
+        next
+      else                               # irrelevant character
+        res += current_char
+      end
+    end
+    str.each_char { |char| consume_character.call(char) }
+
+    # Need to advance twice in case the last character is LAM
+    consume_character.call(nil)
+    consume_character.call(nil)
+    return res
+  end
 
   def self.charinfos
     return @@charinfos unless @@charinfos.nil?
@@ -109,6 +169,32 @@ module ArabicLetterConnector
     add("0629", "fe93", "fe94", "fe93", "fe94", false) # Ta2 Marbu6a
     add("0640", "0640", "0640", "0640", "0640", true)  # Tatweel
     add("0649", "feef", "fef0", "feef", "fef0", false) # Alef Layyina
+
+    # Prevent words from breaking on diacritics by marking the diacritics as
+    # connected
+    #
+    # List of Diacritics pulled from http://unicode.org/charts/PDF/U0600.pdf
+    # under the heading "Tashkil from ISO 8859-6"
+    [
+      "064b", # FATHATAN
+      "064c", # DAMMATAN
+      "064D", # KASRATAN
+      "064E", # FATHA
+      "064F", # DAMMA
+      "0650", # KASRA
+      "0651", # SHADDA
+      "0652"  # SUKUN
+    ].each do |codepoint|
+      add(codepoint, codepoint, codepoint, codepoint, codepoint, true)
+    end
+
+    # The common codes for these four Lam-Alef characters are in the
+    # Arabic Presentation Forms-B block (rather than the regular Arabic block),
+    # because they are introduced by the replace_lam_alef function
+    add("fef5", "fef5", "fef6", "fef5", "fef6", false)  # Lam Alef Madda Above
+    add("fef7", "fef7", "fef8", "fef7", "fef8", false)  # Lam Alef Hamaza Above
+    add("fef9", "fef9", "fefa", "fef9", "fefa", false)  # Lam Alef Hamaza Below
+    add("fefb", "fefb", "fefc", "fefb", "fefc", false)  # Lam Alef
     @@charinfos
   end
 

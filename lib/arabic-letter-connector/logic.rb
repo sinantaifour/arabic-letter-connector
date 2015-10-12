@@ -4,8 +4,6 @@ module ArabicLetterConnector
 
   class CharacterInfo
 
-    HAMZA = "\u0621"
-
     attr_accessor :common , :formatted
 
     def initialize(common, isolated, final, initial, medial, connects)
@@ -23,25 +21,16 @@ module ArabicLetterConnector
     def connects?
       @connects
     end
-
-    # @return [Boolean] can the character connect with the previous character
-    def connects_previous?
-      if @common == HAMZA
-        false
-      else
-        true
-      end
-    end
   end
 
   # Determine the form of the current character (:isolated, :initial, :medial,
   # or :final), given the previous character and the next one. In Arabic, all
-  # characters except for Hamza can connect with a previous character, but not
-  # all letters can connect with the next character (this is determined by
-  # CharacterInfo#connects? and CharacterInfo#connects_previous?).
+  # characters can connect with a previous character, but not all letters can
+  # connect with the next character (this is determined by
+  # CharacterInfo#connects?).
   def self.determine_form(previous_char, next_char)
     charinfos = self.charinfos
-    if charinfos[previous_char] && charinfos[next_char] && charinfos[next_char].connects_previous?
+    if charinfos[previous_char] && charinfos[next_char]
       charinfos[previous_char].connects? ? :medial : :initial # If the current character does not connect,
                                                               # its medial form will map to its final form,
                                                               # and its initial form will map to its isolated form.

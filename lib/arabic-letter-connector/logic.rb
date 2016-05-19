@@ -6,7 +6,7 @@ module ArabicLetterConnector
 
     attr_accessor :common , :formatted
 
-    def initialize(common, isolated, final, initial, medial, connects)
+    def initialize(common, isolated, final, initial, medial, connects, diacritic)
       @common = common
       @formatted = {
         :isolated => isolated,
@@ -15,10 +15,15 @@ module ArabicLetterConnector
         :medial   => medial,
       }
       @connects = connects
+      @diacritic = diacritic
     end
 
     def connects?
       @connects
+    end
+
+    def diacritic?
+      @diacritic
     end
 
   end
@@ -28,8 +33,10 @@ module ArabicLetterConnector
   # characters can connect with a previous character, but not all letters can
   # connect with the next character (this is determined by
   # CharacterInfo#connects?).
-  def self.determine_form(previous_char, next_char)
+  def self.determine_form(previous_previous_char, previous_char, next_char, next_next_char)
     charinfos = self.charinfos
+    next_char = next_next_char if charinfos[next_char] && charinfos[next_char].diacritic?
+    previous_char = previous_previous_char if charinfos[previous_char] && charinfos[previous_char].diacritic?
     if charinfos[previous_char] && charinfos[next_char]
       charinfos[previous_char].connects? ? :medial : :initial # If the current character does not connect, 
                                                               # its medial form will map to its final form,
@@ -46,23 +53,27 @@ module ArabicLetterConnector
   def self.transform(str)
     res = ""
     charinfos = self.charinfos
+    previous_previous_char = nil
     previous_char = nil
     current_char = nil
     next_char = nil
+    next_next_char = nil
     consume_character = lambda do |char|
+      previous_previous_char = previous_char
       previous_char = current_char
       current_char = next_char
-      next_char = char
+      next_char = next_next_char
+      next_next_char = char
       return unless current_char
       if charinfos.keys.include?(current_char)
-        form = determine_form(previous_char, next_char)
+        form = determine_form(previous_previous_char, previous_char, next_char, next_next_char)
         res += charinfos[current_char].formatted[form]
       else
         res += current_char
       end
     end
     str.each_char { |char| consume_character.call(char) }
-    consume_character.call(nil)
+    2.times { consume_character.call(nil) }
     res.gsub!(/\d+/) {|m| m.reverse}
     return res
   end
@@ -109,17 +120,27 @@ module ArabicLetterConnector
     add("0629", "fe93", "fe94", "fe93", "fe94", false) # Ta2 Marbu6a
     add("0640", "0640", "0640", "0640", "0640", true)  # Tatweel
     add("0649", "feef", "fef0", "feef", "fef0", false) # Alef Layyina
+    add("0651", "fe7c", "fe7c", "fe7c", "fe7d", false, true) # Shadda
+    add("0652", "fe7e", "fe7e", "fe7e", "fe7f", false, true) # Sukun
+    add("064e", "fe76", "fe76", "fe76", "fe77", false, true) # Fatha
+    add("0650", "fe7a", "fe7a", "fe7a", "fe7b", false, true) # Kasra
+    add("064f", "fe78", "fe78", "fe78", "fe79", false, true) # Damma
+    add("0653", "0653", "0653", "0653", "0653", false, true) # Madda
+    add("064b", "fe79", "fe70", "fe70", "fe71", false, true) # Fathatan
+    add("064d", "fe74", "fe74", "fe74", "fe74", false, true) # Kasratan
+    add("064c", "fe72", "fe72", "fe72", "fe72", false, true) # Dammatan
     @@charinfos
   end
 
-  def self.add(common, isolated, final, initial, medial, connects)
+  def self.add(common, isolated, final, initial, medial, connects, diacritic = false)
     charinfo = CharacterInfo.new(
       [common.hex].pack("U"),
       [isolated.hex].pack("U"),
       [final.hex].pack("U"),
       [initial.hex].pack("U"),
       [medial.hex].pack("U"),
-      connects
+      connects,
+      diacritic
     )
     @@charinfos[charinfo.common] = charinfo
   end

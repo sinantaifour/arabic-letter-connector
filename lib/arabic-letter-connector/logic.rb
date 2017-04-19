@@ -6,7 +6,7 @@ module ArabicLetterConnector
 
     attr_accessor :common , :formatted
 
-    def initialize(common, isolated, final, initial, medial, connects, diacritic)
+    def initialize(common, isolated, final, initial, medial, connects, diacritic, conditionals)
       @common = common
       @formatted = {
         :isolated => isolated,
@@ -16,6 +16,7 @@ module ArabicLetterConnector
       }
       @connects = connects
       @diacritic = diacritic
+      @conditionals = conditionals
     end
 
     def connects?
@@ -26,6 +27,9 @@ module ArabicLetterConnector
       @diacritic
     end
 
+    def conditionals
+      @conditionals
+    end
   end
 
   # Determine the form of the current character (:isolated, :initial, :medial,
@@ -67,23 +71,30 @@ module ArabicLetterConnector
       return unless current_char
       if charinfos.keys.include?(current_char)
         form = determine_form(previous_previous_char, previous_char, next_char, next_next_char)
-        res += charinfos[current_char].formatted[form]
+        conditional = charinfos[current_char].conditionals[previous_char]
+        if conditional
+          res = res[0..-2] + conditional
+        else
+          res += charinfos[current_char].formatted[form]
+        end
       else
         res += current_char
       end
     end
     str.each_char { |char| consume_character.call(char) }
     2.times { consume_character.call(nil) }
-    res.gsub!(/\d+/) {|m| m.reverse}
+    res.gsub!(/\d+/) { |m| m.reverse }
     return res
   end
 
   private
-
   def self.charinfos
     return @@charinfos unless @@charinfos.nil?
     @@charinfos = {}
-    add("0627", "fe8d", "fe8e", "fe8d", "fe8e", false) # Alef
+    add("0627", "fe8d", "fe8e", "fe8d", "fe8e", false, false, {
+        '0644' => 'fefb', # لا
+        'fede' => 'fefc' # ـلا
+    }) # Alef
     add("0628", "fe8f", "fe90", "fe91", "fe92", true)  # Ba2
     add("062a", "fe95", "fe96", "fe97", "fe98", true)  # Ta2
     add("062b", "fe99", "fe9a", "fe9b", "fe9c", true)  # Tha2
@@ -112,10 +123,19 @@ module ArabicLetterConnector
     add("0648", "feed", "feee", "feed", "feee", false) # Waw
     add("064a", "fef1", "fef2", "fef3", "fef4", true)  # Ya2
     add("0621", "fe80", "fe80", "fe80", "fe80", false) # Hamza
-    add("0622", "fe81", "fe82", "fe81", "fe82", false) # Alef Madda
-    add("0623", "fe83", "fe84", "fe83", "fe84", false) # Alef Hamza Above
+    add("0622", "fe81", "fe82", "fe81", "fe82", false, false, {
+        '0644' => 'fef5', # لآ
+        'fede' => 'fef6' # ـلآ
+    }) # Alef Madda
+    add("0623", "fe83", "fe84", "fe83", "fe84", false, false, {
+        '0644' => 'fefa', # لأ
+        'fede' => 'fef8' # ـلأ
+    }) # Alef Hamza Above
     add("0624", "fe85", "fe86", "fe85", "fe86", false) # Waw Hamza
-    add("0625", "fe87", "fe88", "fe87", "fe88", false) # Alef Hamza Below
+    add("0625", "fe87", "fe88", "fe87", "fe88", false, false, {
+        '0644' => 'fef9', # لإ
+        'fede' => 'fefa' # ـلإ
+    }) # Alef Hamza Below
     add("0626", "fe89", "fe8a", "fe8b", "fe8c", true)  # Ya2 Hamza
     add("0629", "fe93", "fe94", "fe93", "fe94", false) # Ta2 Marbu6a
     add("0640", "0640", "0640", "0640", "0640", true)  # Tatweel
@@ -132,7 +152,7 @@ module ArabicLetterConnector
     @@charinfos
   end
 
-  def self.add(common, isolated, final, initial, medial, connects, diacritic = false)
+  def self.add(common, isolated, final, initial, medial, connects, diacritic = false, conditionals={})
     charinfo = CharacterInfo.new(
       [common.hex].pack("U"),
       [isolated.hex].pack("U"),
@@ -140,7 +160,8 @@ module ArabicLetterConnector
       [initial.hex].pack("U"),
       [medial.hex].pack("U"),
       connects,
-      diacritic
+      diacritic,
+      conditionals.map { |k, v| [[k.hex].pack("U"), [v.hex].pack("U")] }.to_h
     )
     @@charinfos[charinfo.common] = charinfo
   end
